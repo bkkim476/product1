@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>상품등록</title>
+  <script type="module">
+      import { ajax } from '/js/common.js';
+
+      //상품조회
+      const getProduct = async pid => {
+        try {
+          const url = `/api/products/${pid}`;
+          const result = await ajax.get(url);
+          console.log(result);
+          if (result.header.rtcd === '00') {
+            console.log(result.body);
+            productId2.setAttribute('value', result.body.productId);
+            pname2.setAttribute('value', result.body.pname);
+            quantity2.setAttribute('value', result.body.quantity);
+            price2.setAttribute('value', result.body.price);
+
+            productId2.value = result.body.productId;
+            pname2.value = result.body.pname;
+            quantity2.value =  result.body.quantity;
+            price2.value = result.body.price;
+
+          } else {
+            console.log(result.header.rtmsg);
+          }
+        } catch (err) {
+          console.error(err);
+        }
+
+            // 데이터를 가져온 후에 버튼을 화면에 표시
+        const button = document.createElement('button');
+        button.textContent = '내 버튼';
+        document.getElementById('tfoot').appendChild(button);
+
+
+      };
+
+      //상품목록
+      const getProducts = async () => {
+        try {
+          const url = `/api/products/all`;
+          const result = await ajax.get(url);
+          console.log(result);
+          if (result.header.rtcd === '00') {
+            displayProductList(result.body);
+          } else {
+            console.log(result.header.rtmsg);
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      };
+
+      getProducts();
+
+      // //목록버튼
+      // const $listBtn = document.createElement('button'); // <button></button>
+      // $listBtn.textContent = '목록가져오기'; //<button>목록가져오기</button>
+      // $listBtn.setAttribute('id', 'btnList'); //<button id='btnList'>목록가져오기</button>
+      // document.body.appendChild($listBtn);
+      // btnList.addEventListener('click', getProducts);
+
+      const $list = document.createElement('div');
+      document.body.appendChild($list);
+
+      //상품목록
+      function displayProductList(products) {
+        const makeTr = products => {
+          const $tr = products
+            .map(
+              product =>
+                `<tr data-pid=${product.productId}>
+                  <td>${product.productId}</td>
+                  <td>${product.pname}</td>
+                  <td>${product.quantity}</td>
+                  <td>${product.price}</td></tr>`,
+            )
+            .join('');
+          return $tr;
+        };
+
+        $list.innerHTML = `
+          <table>
+            <caption>*** 상품 전체 조회 ***</caption>
+            <thead>
+              <tr>
+                <th>상품번호</th>
+                <th>상품명</th>
+                <th>수량</th>
+                <th>가격</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${makeTr(products)}
+            </tbody>
+
+          </table>`;
+
+          const $btnAdd = $list.querySelector('#btnAdd');
+          const $btnUpdate = $list.querySelector('#btnUpdate');
+          const $btnDelete = $list.querySelector('#btnDelete');
+          const $btnMain = $list.querySelector('#btnMain');
+
+         const $products = $list.querySelectorAll('table tbody tr');
+
+        [...$products].forEach(product =>
+          product.addEventListener('click', e => {
+            const pid = e.currentTarget.dataset.pid;
+            getProduct(pid);
+          }),
+        );
+
+        const $listBtn2 = document.createElement('button'); // <button></button>
+        $listBtn2.textContent = '메인화면';     //<button>메인화면</button>
+        $listBtn2.setAttribute('id', 'btnList2'); //<button id='btnList2'>메인화면</button>
+        document.body.appendChild($listBtn2);
+        btnList2.addEventListener('click', buttonProducts);
+
+      }
+
+      function buttonProducts() {
+            window.location.href = "/api/products/main";
+      }
+    </script>
+</head>
+<body></body>
+</html>

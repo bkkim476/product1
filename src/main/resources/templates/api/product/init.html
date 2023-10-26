@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>상품관리-CSR</title>
+  <script type="module">
+      import { ajax } from '/js/common.js';
+
+      //상품등록
+      const addProduct = async product => {
+        try {
+          const url = '/api/products';
+          const result = await ajax.post(url, product);
+          if (result.header.rtcd === '00') {
+            console.log(result.body);
+            frm.reset();
+            getProducts();
+          } else {
+            console.log(result.header.rtmsg);
+          }
+        } catch (err) {
+          console.error(err.message);
+        }
+      };
+
+      //상품조회
+      const getProduct = async pid => {
+        try {
+          const url = `/api/products/${pid}`;
+          const result = await ajax.get(url);
+          console.log(result);
+          if (result.header.rtcd === '00') {
+            console.log(result.body);
+            productId2.setAttribute('value', result.body.productId);
+            pname2.setAttribute('value', result.body.pname);
+            quantity2.setAttribute('value', result.body.quantity);
+            price2.setAttribute('value', result.body.price);
+
+            productId2.value = result.body.productId;
+            pname2.value = result.body.pname;
+            quantity2.value =  result.body.quantity;
+            price2.value = result.body.price;
+
+          } else {
+            console.log(result.header.rtmsg);
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      };
+
+      //상품삭제
+      const delProduct = async (pid, frm) => {
+        try {
+          const url = `/api/products/${pid}`;
+          const result = await ajax.delete(url);
+          console.log(result);
+          if (result.header.rtcd === '00') {
+            console.log(result.body);
+            const $inputs = frm.querySelectorAll('input');
+            [...$inputs].forEach(ele => (ele.value = '')); //폼필드 초기화
+            getProducts();
+          } else {
+            console.log(result.header.rtmsg);
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      };
+
+      //상품수정
+      const modifyProduct = async (pid, product) => {
+        try {
+          const url = `/api/products/${pid}`;
+          const result = await ajax.patch(url, product);
+          if (result.header.rtcd === '00') {
+            console.log(result.body);
+            getProducts();
+          } else {
+            console.log(result.header.rtmsg);
+          }
+        } catch (err) {
+          console.error(err.message);
+        }
+      };
+
+      //상품목록
+      const getProducts = async () => {
+        try {
+          const url = `/api/products/all`;
+          const result = await ajax.get(url);
+          console.log(result);
+          if (result.header.rtcd === '00') {
+            displayProductList(result.body);
+          } else {
+            console.log(result.header.rtmsg);
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      };
+
+      displayReadForm();
+      displayForm();
+      getProducts();
+
+      // //목록버튼
+      // const $listBtn = document.createElement('button'); // <button></button>
+      // $listBtn.textContent = '목록가져오기'; //<button>목록가져오기</button>
+      // $listBtn.setAttribute('id', 'btnList'); //<button id='btnList'>목록가져오기</button>
+      // document.body.appendChild($listBtn);
+      // btnList.addEventListener('click', getProducts);
+
+      const $list = document.createElement('div');
+      document.body.appendChild($list);
+
+      function displayForm() {
+        //상품등록
+        const $addFormWrap = document.createElement('div');
+        $addFormWrap.innerHTML = `
+          <form id="frm">
+            <div>
+                <label for="pname">상품명</label>
+                <input type="text" id="pname" name="pname"/>
+            </div>
+            <div>
+                <label for="quantity">수량</label>
+                <input type="text" id="quantity" name="quantity"/>
+            </div>
+            <div>
+                <label for="price">가격</label>
+                <input type="text" id="price" name="price"/>
+            </div>
+            <div>
+                <button id="btnAdd" type="submit">등록</button>
+            </div>
+          </form>
+        `;
+
+        document.body.insertAdjacentElement('afterbegin', $addFormWrap);
+        const $frm = $addFormWrap.querySelector('#frm');
+        $frm.addEventListener('submit', e => {
+          e.preventDefault(); // 기본동작 중지
+
+          const formData = new FormData(e.target); //폼데이터가져오기
+          const product = {};
+          [...formData.keys()].forEach(
+            ele => (product[ele] = formData.get(ele)),
+          ); // {pname:'책상', quantitiy:10, price:100 }
+
+          addProduct(product);
+
+        });
+      }
+
+      //상품조회
+      function displayReadForm() {
+        //상태 : 조회 mode-read, 편집 mode-edit
+        const changeEditMode = frm => {
+          frm.classList.toggle('mode-edit', true);
+          [...frm.querySelectorAll('input')]
+            .filter(input => input.name !== 'productId')
+            .forEach(input => input.removeAttribute('readonly'));
+
+          const $btns = frm.querySelector('.btns');
+          $btns.innerHTML = `
+            <button id="btnSave" type="button">저장</button>
+            <button id="btnCancel" type="button">취소</button>
+          `;
+
+          const $btnSave = $btns.querySelector('#btnSave');
+          const $btnCancel = $btns.querySelector('#btnCancel');
+
+          //저장
+          $btnSave.addEventListener('click', e => {
+            const formData = new FormData(frm); //폼데이터가져오기
+            const product = {};
+
+            [...formData.keys()].forEach(
+              ele => (product[ele] = formData.get(ele)),
+            ); // {pname:'책상', quantitiy:10, price:100 }
+
+            modifyProduct(product.productId, product); //수정
+            getProduct(product.productId); //조회
+            changeReadMode(frm); //읽기모드
+          });
+
+          //취소
+          $btnCancel.addEventListener('click', e => {
+            frm.reset(); //초기화
+            changeReadMode(frm);
+          });
+        };
+
+        const changeReadMode = frm => {
+          frm.classList.toggle('mode-read', true);
+          [...frm.querySelectorAll('input')]
+            .filter(input => input.name !== 'productId')
+            .forEach(input => input.setAttribute('readonly', ''));
+
+          const $btns = frm.querySelector('.btns');
+          $btns.innerHTML = `
+            <button id="btnEdit" type="button">수정</button>
+            <button id="btnDelete" type="button">삭제</button>
+          `;
+
+          const $btnDelete = $btns.querySelector('#btnDelete');
+          const $btnEdit = $btns.querySelector('#btnEdit');
+
+          //수정
+          $btnEdit.addEventListener('click', e => {
+            changeEditMode(frm);
+          });
+
+          //삭제
+          $btnDelete.addEventListener('click', e => {
+            const pid = frm.productId.value;
+            if (!pid) {
+              alert('상품조회 후 삭제바랍니다.');
+              return;
+            }
+
+            if (!confirm('삭제하시겠습니까?')) return;
+            delProduct(pid, frm);
+          });
+        };
+
+        const $readFormWrap = document.createElement('div');
+        $readFormWrap.innerHTML = `
+          <form id="frm2">
+
+            <div>
+                <label for="productId2">상품아이디</label>
+                <input type="text" id="productId2" name="productId" readonly/>
+            </div>
+            <div>
+                <label for="pname">상품명</label>
+                <input type="text" id="pname2" name="pname"/>
+            </div>
+            <div>
+                <label for="quantity">수량</label>
+                <input type="text" id="quantity2" name="quantity"/>
+            </div>
+            </div>
+            <div>
+                <label for="price">가격</label>
+                <input type="text" id="price2" name="price"/>
+            </div>
+            </div>
+            <div class='btns'></div>
+
+          </form>
+        `;
+        document.body.insertAdjacentElement('afterbegin', $readFormWrap);
+        const $frm2 = $readFormWrap.querySelector('#frm2');
+        changeReadMode($frm2);
+      }
+
+      //상품목록
+      function displayProductList(products) {
+        const makeTr = products => {
+          const $tr = products
+            .map(
+              product =>
+                `<tr data-pid=${product.productId}>
+                  <td>${product.productId}</td>
+                  <td>${product.pname}</td></tr>`,
+            )
+            .join('');
+          return $tr;
+        };
+
+        $list.innerHTML = `
+          <table>
+            <caption> 상 품 목 록 </caption>
+            <thead>
+              <tr>
+                <th>상품번호</th>
+                <th>상품명</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${makeTr(products)}
+            </tbody>
+          </table>`;
+
+        const $products = $list.querySelectorAll('table tbody tr');
+
+        [...$products].forEach(product =>
+          product.addEventListener('click', e => {
+            const pid = e.currentTarget.dataset.pid;
+            getProduct(pid);
+          }),
+        );
+      }
+    </script>
+</head>
+<body></body>
+</html>
